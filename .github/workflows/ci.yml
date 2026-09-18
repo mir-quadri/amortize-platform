@@ -129,10 +129,10 @@ jobs:
       - run: cd infra && terraform init && terraform apply -auto-approve
       - run: |
           cd infra
-          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
-          KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
-          echo "Cluster kubeconfig created at: $KUBECONFIG"
-          ls -lh "$KUBECONFIG"
+          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
+          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
+          echo "Kubeconfig created at: $KUBECONFIG_PATH"
+          ls -lh "$KUBECONFIG_PATH"
 
   deploy:
     name: Deploy to Kubernetes

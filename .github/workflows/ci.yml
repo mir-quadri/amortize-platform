@@ -107,45 +107,17 @@ jobs:
       - run: terraform -chdir=infra init
       - run: terraform -chdir=infra validate
 
-  terraform-apply:
-    name: Terraform Apply
+  apply-and-deploy:
+    name: Terraform Apply and Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [terraform-validate]
-    outputs:
-      kubeconfig: ${{ steps.tf-apply.outputs.kubeconfig }}
+    needs: [terraform-validate, trivy-scan]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.8.5'
-      - uses: azure/setup-kubectl@v3
-        with:
-          version: v1.29.0
-      - run: |
-          mkdir -p ~/.local/bin
-          curl -sL https://github.com/kubernetes-sigs/kind/releases/download/v0.24.0/kind-linux-amd64 -o ~/.local/bin/kind
-          chmod +x ~/.local/bin/kind
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - id: tf-apply
-        run: |
-          cd infra && terraform init && terraform apply -auto-approve
-          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
-          echo "Kubeconfig created at: $KUBECONFIG_PATH"
-          ls -lh "$KUBECONFIG_PATH"
-          # Base64 encode kubeconfig for safe passing through job outputs
-          KUBECONFIG_B64=$(base64 -w0 < "$KUBECONFIG_PATH")
-          echo "kubeconfig=$KUBECONFIG_B64" >> $GITHUB_OUTPUT
-
-  deploy:
-    name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    needs: [terraform-apply, trivy-scan]
-    steps:
-      - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
@@ -163,12 +135,18 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          # Decode kubeconfig from base64 output
-          echo "${{ needs.terraform-apply.outputs.kubeconfig }}" | base64 -d > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
+          # Apply Terraform to provision kind cluster
+          cd infra && terraform init && terraform apply -auto-approve
+          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
+          echo "Kubeconfig created at: $KUBECONFIG_PATH"
+          ls -lh "$KUBECONFIG_PATH"
+          # Export kubeconfig path for subsequent steps
+          echo "KUBECONFIG=$KUBECONFIG_PATH" >> $GITHUB_ENV
+      - run: |
+          # Load docker image into kind cluster
           kind load docker-image amortize:latest --name amortize-poc
       - run: |
-          export KUBECONFIG=/tmp/kubeconfig
+          # Deploy to cluster
           kubectl kustomize k8s/base | kubectl apply -f -
           kubectl rollout status deployment/amortize -n amortize --timeout=5m
 
@@ -177,25 +155,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [deploy, terraform-apply]
+    needs: [apply-and-deploy]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - run: pip install -e ".[dev]"
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.8.5'
       - uses: azure/setup-kubectl@v3
         with:
           version: v1.29.0
       - run: |
-          mkdir -p ~/.local/bin
-          curl -sL https://github.com/kubernetes-sigs/kind/releases/download/v0.24.0/kind-linux-amd64 -o ~/.local/bin/kind
-          chmod +x ~/.local/bin/kind
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Extract kubeconfig path from Terraform state
+          cd infra && terraform init
+          KUBECONFIG=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
+          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
       - run: |
-          # Decode kubeconfig from base64 output
-          echo "${{ needs.terraform-apply.outputs.kubeconfig }}" | base64 -d > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
           echo "Cluster info:"
           kubectl cluster-info
           echo "Pods:"

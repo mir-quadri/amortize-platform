@@ -114,7 +114,7 @@ jobs:
       contents: read
     needs: [terraform-validate]
     outputs:
-      kubeconfig_path: ${{ steps.tf-apply.outputs.kubeconfig_path }}
+      kubeconfig: ${{ steps.tf-apply.outputs.kubeconfig }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v2
@@ -132,9 +132,11 @@ jobs:
         run: |
           cd infra && terraform init && terraform apply -auto-approve
           KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
-          echo "kubeconfig_path=$KUBECONFIG_PATH" >> $GITHUB_OUTPUT
           echo "Kubeconfig created at: $KUBECONFIG_PATH"
           ls -lh "$KUBECONFIG_PATH"
+          # Base64 encode kubeconfig for safe passing through job outputs
+          KUBECONFIG_B64=$(base64 -w0 < "$KUBECONFIG_PATH")
+          echo "kubeconfig=$KUBECONFIG_B64" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy to Kubernetes
@@ -142,8 +144,6 @@ jobs:
     permissions:
       contents: read
     needs: [terraform-apply, trivy-scan]
-    env:
-      KUBECONFIG_PATH: ${{ needs.terraform-apply.outputs.kubeconfig_path }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -163,10 +163,11 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
-          kind load docker-image amortize:latest --name amortize-poc
+          # Decode kubeconfig from base64 output
+          echo "${{ needs.terraform-apply.outputs.kubeconfig }}" | base64 -d > /tmp/kubeconfig
+          kind load docker-image amortize:latest --name amortize-poc --kubeconfig=/tmp/kubeconfig
       - run: |
-          KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
+          export KUBECONFIG=/tmp/kubeconfig
           kubectl kustomize k8s/base | kubectl apply -f -
           kubectl rollout status deployment/amortize -n amortize --timeout=5m
 
@@ -176,8 +177,6 @@ jobs:
     permissions:
       contents: read
     needs: [deploy, terraform-apply]
-    env:
-      KUBECONFIG_PATH: ${{ needs.terraform-apply.outputs.kubeconfig_path }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -193,8 +192,9 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
-          export KUBECONFIG="$KUBECONFIG_PATH"
+          # Decode kubeconfig from base64 output
+          echo "${{ needs.terraform-apply.outputs.kubeconfig }}" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
           echo "Cluster info:"
           kubectl cluster-info
           echo "Pods:"

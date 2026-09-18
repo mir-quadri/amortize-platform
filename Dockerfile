@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --target /build/lib -e .
+    pip install --no-cache-dir --target /build/lib .
 
 
 FROM python:3.11-slim

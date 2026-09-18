@@ -1,9 +1,9 @@
 provider "kind" {}
 
 resource "kind_cluster" "default" {
-  name            = var.cluster_name
+  name               = var.cluster_name
   kubernetes_version = var.kubernetes_version
-  wait_for_ready = true
+  wait_for_ready     = true
 
   kind_config = yamlencode({
     apiVersion = "kind.x-k8s.io/v1alpha4"

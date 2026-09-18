@@ -15,7 +15,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN groupadd -r app && useradd -r -g app app
+RUN groupadd -r -g 1000 app && useradd -r -u 1000 -g 1000 app
 
 COPY --from=builder /build/lib /usr/local/lib/python3.11/site-packages
 

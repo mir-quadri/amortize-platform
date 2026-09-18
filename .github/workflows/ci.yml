@@ -128,7 +128,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: cd infra && terraform init && terraform apply -auto-approve
       - run: |
-          KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path)
+          cd infra
+          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
+          KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
           echo "Cluster kubeconfig created at: $KUBECONFIG"
           ls -lh "$KUBECONFIG"
 
@@ -159,10 +161,11 @@ jobs:
       - run: |
           cd infra
           terraform init
-          export KUBECONFIG=$(terraform output -raw kubeconfig_path)
+          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
+          export KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
           kind load docker-image amortize:latest --name amortize-poc
       - run: |
-          export KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path)
+          KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
           kubectl kustomize k8s/base | kubectl apply -f -
           kubectl rollout status deployment/amortize -n amortize --timeout=5m
 
@@ -186,7 +189,8 @@ jobs:
       - run: |
           cd infra
           terraform init
-          export KUBECONFIG=$(terraform output -raw kubeconfig_path)
+          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
+          export KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
           echo "Cluster info:"
           kubectl cluster-info
           echo "Pods:"

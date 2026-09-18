@@ -113,6 +113,8 @@ jobs:
     permissions:
       contents: read
     needs: [terraform-validate]
+    outputs:
+      kubeconfig_path: ${{ steps.tf-apply.outputs.kubeconfig_path }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v2
@@ -126,11 +128,11 @@ jobs:
           curl -sL https://github.com/kubernetes-sigs/kind/releases/download/v0.24.0/kind-linux-amd64 -o ~/.local/bin/kind
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - run: cd infra && terraform init && terraform apply -auto-approve
-      - run: |
-          cd infra
+      - id: tf-apply
+        run: |
+          cd infra && terraform init && terraform apply -auto-approve
           KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
-          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
+          echo "kubeconfig_path=$KUBECONFIG_PATH" >> $GITHUB_OUTPUT
           echo "Kubeconfig created at: $KUBECONFIG_PATH"
           ls -lh "$KUBECONFIG_PATH"
 
@@ -140,11 +142,10 @@ jobs:
     permissions:
       contents: read
     needs: [terraform-apply, trivy-scan]
+    env:
+      KUBECONFIG_PATH: ${{ needs.terraform-apply.outputs.kubeconfig_path }}
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.8.5'
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
@@ -162,9 +163,6 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          cd infra
-          terraform init
-          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
           echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
           kind load docker-image amortize:latest --name amortize-poc
       - run: |
@@ -177,12 +175,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [deploy]
+    needs: [deploy, terraform-apply]
+    env:
+      KUBECONFIG_PATH: ${{ needs.terraform-apply.outputs.kubeconfig_path }}
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.8.5'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -196,9 +193,6 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          cd infra
-          terraform init
-          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
           echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
           export KUBECONFIG="$KUBECONFIG_PATH"
           echo "Cluster info:"

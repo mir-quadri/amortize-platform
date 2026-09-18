@@ -148,6 +148,14 @@ jobs:
       - run: |
           # Deploy to cluster
           kubectl kustomize k8s/base | kubectl apply -f -
+          # Wait for deployment to be created
+          sleep 2
+          # Show pod status for debugging
+          echo "Pod status:"
+          kubectl get pods -n amortize -o wide
+          echo "Pod logs:"
+          kubectl logs -n amortize -l app=amortize --tail=50 || true
+          # Wait for rollout
           kubectl rollout status deployment/amortize -n amortize --timeout=5m
 
   smoke-test:

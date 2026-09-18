@@ -142,6 +142,9 @@ jobs:
     needs: [terraform-apply, trivy-scan]
     steps:
       - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.8.5'
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
@@ -161,8 +164,8 @@ jobs:
       - run: |
           cd infra
           terraform init
-          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
-          export KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
+          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
+          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
           kind load docker-image amortize:latest --name amortize-poc
       - run: |
           KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
@@ -177,10 +180,16 @@ jobs:
     needs: [deploy]
     steps:
       - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.8.5'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - run: pip install -e ".[dev]"
+      - uses: azure/setup-kubectl@v3
+        with:
+          version: v1.29.0
       - run: |
           mkdir -p ~/.local/bin
           curl -sL https://github.com/kubernetes-sigs/kind/releases/download/v0.24.0/kind-linux-amd64 -o ~/.local/bin/kind
@@ -189,8 +198,9 @@ jobs:
       - run: |
           cd infra
           terraform init
-          terraform output -raw kubeconfig_path > /tmp/kubeconfig_path.txt
-          export KUBECONFIG=$(cat /tmp/kubeconfig_path.txt)
+          KUBECONFIG_PATH=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
+          echo "$KUBECONFIG_PATH" > /tmp/kubeconfig_path.txt
+          export KUBECONFIG="$KUBECONFIG_PATH"
           echo "Cluster info:"
           kubectl cluster-info
           echo "Pods:"

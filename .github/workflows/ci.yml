@@ -127,7 +127,10 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: cd infra && terraform init && terraform apply -auto-approve
-      - run: export KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path) && kubectl cluster-info
+      - run: |
+          KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path)
+          echo "Cluster kubeconfig created at: $KUBECONFIG"
+          ls -lh "$KUBECONFIG"
 
   deploy:
     name: Deploy to Kubernetes

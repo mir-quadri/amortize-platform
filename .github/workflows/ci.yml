@@ -165,7 +165,8 @@ jobs:
       - run: |
           # Decode kubeconfig from base64 output
           echo "${{ needs.terraform-apply.outputs.kubeconfig }}" | base64 -d > /tmp/kubeconfig
-          kind load docker-image amortize:latest --name amortize-poc --kubeconfig=/tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kind load docker-image amortize:latest --name amortize-poc
       - run: |
           export KUBECONFIG=/tmp/kubeconfig
           kubectl kustomize k8s/base | kubectl apply -f -

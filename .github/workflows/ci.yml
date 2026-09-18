@@ -127,8 +127,7 @@ jobs:
           chmod +x ~/.local/bin/kind
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: cd infra && terraform init && terraform apply -auto-approve
-      - run: mkdir -p /tmp && terraform -chdir=infra output -raw kubeconfig > /tmp/kubeconfig
-      - run: export KUBECONFIG=/tmp/kubeconfig && kubectl cluster-info
+      - run: export KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path) && kubectl cluster-info
 
   deploy:
     name: Deploy to Kubernetes
@@ -157,10 +156,10 @@ jobs:
       - run: |
           cd infra
           terraform init
-          export KUBECONFIG=$(terraform output -raw kubeconfig)
+          export KUBECONFIG=$(terraform output -raw kubeconfig_path)
           kind load docker-image amortize:latest --name amortize-poc
       - run: |
-          export KUBECONFIG=$(cd infra && terraform output -raw kubeconfig)
+          export KUBECONFIG=$(cd infra && terraform output -raw kubeconfig_path)
           kubectl kustomize k8s/base | kubectl apply -f -
           kubectl rollout status deployment/amortize -n amortize --timeout=5m
 
@@ -184,7 +183,7 @@ jobs:
       - run: |
           cd infra
           terraform init
-          export KUBECONFIG=$(terraform output -raw kubeconfig)
+          export KUBECONFIG=$(terraform output -raw kubeconfig_path)
           echo "Cluster info:"
           kubectl cluster-info
           echo "Pods:"

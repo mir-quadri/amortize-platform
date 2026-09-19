@@ -20,6 +20,7 @@ up:
 	cd infra && terraform init && terraform apply -auto-approve
 
 deploy: build
+	kind load docker-image amortize:latest --name amortize-poc
 	kubectl kustomize k8s/base > /tmp/amortize-manifest.yaml
 	kubectl apply -f /tmp/amortize-manifest.yaml
 	kubectl rollout status deployment/amortize -n amortize --timeout=5m

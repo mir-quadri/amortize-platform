@@ -71,6 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      security-events: write
     needs: [docker-build]
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +89,8 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
-      - uses: github/codeql-action/upload-sarif@v2
+          exit-code: '1'
+      - uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: trivy-results.sarif

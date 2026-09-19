@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: amortize-config
+  namespace: amortize
+data:
+  log_level: "INFO"

@@ -159,30 +159,10 @@ jobs:
           kubectl logs -n amortize -l app=amortize --tail=50 || true
           # Wait for rollout with longer timeout
           kubectl rollout status deployment/amortize -n amortize --timeout=10m
-
-  smoke-test:
-    name: Smoke Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    needs: [apply-and-deploy]
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - run: pip install -e ".[dev]"
-      - uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.8.5'
-      - uses: azure/setup-kubectl@v3
-        with:
-          version: v1.29.0
-      - run: |
-          # Extract kubeconfig path from Terraform state
-          cd infra && terraform init
-          KUBECONFIG=$(cat terraform.tfstate | jq -r '.outputs.kubeconfig_path.value')
-          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
       - run: |
           echo "Cluster info:"
           kubectl cluster-info
@@ -204,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [smoke-test]
+    needs: [apply-and-deploy]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -219,7 +199,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: [smoke-test]
+    needs: [apply-and-deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

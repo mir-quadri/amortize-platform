@@ -88,7 +88,7 @@ def calculate_amortization(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             principal_payment = min(principal_payment, balance)
-            payment = monthly_payment
+            payment = principal_payment + interest_payment
 
         balance = (balance - principal_payment).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         total_interest = (total_interest + interest_payment).quantize(

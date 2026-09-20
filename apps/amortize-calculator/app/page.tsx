@@ -14,9 +14,18 @@ export default function AmortizeCalculator() {
     try {
       const p = new Decimal(principal || 0);
       const r = new Decimal(rate || 0);
-      const m = parseInt(months || '0');
+      const mInput = months || '0';
+      const m = parseInt(mInput, 10);
 
       if (!principal || !rate || !months) return { result: null, error: '' };
+
+      // Validate that months is an integer (not truncated from decimal)
+      if (mInput.includes('.') || mInput.includes('e') || mInput.includes('E')) {
+        return {
+          result: null,
+          error: 'Loan term must be a whole number of months',
+        };
+      }
 
       return { result: calculateAmortization(p, r, m), error: '' };
     } catch (err) {

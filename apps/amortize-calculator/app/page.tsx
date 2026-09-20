@@ -9,21 +9,21 @@ export default function AmortizeCalculator() {
   const [principal, setPrincipal] = useState('300000');
   const [rate, setRate] = useState('6');
   const [months, setMonths] = useState('360');
-  const [error, setError] = useState('');
 
-  const result = useMemo(() => {
+  const { result, error } = useMemo(() => {
     try {
-      setError('');
       const p = new Decimal(principal || 0);
       const r = new Decimal(rate || 0);
       const m = parseInt(months || '0');
 
-      if (!principal || !rate || !months) return null;
+      if (!principal || !rate || !months) return { result: null, error: '' };
 
-      return calculateAmortization(p, r, m);
+      return { result: calculateAmortization(p, r, m), error: '' };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid input');
-      return null;
+      return {
+        result: null,
+        error: err instanceof Error ? err.message : 'Invalid input',
+      };
     }
   }, [principal, rate, months]);
 

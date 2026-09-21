@@ -25,7 +25,10 @@ A beautiful, production-ready loan amortization calculator built with Next.js an
 ```bash
 # Clone the repository
 git clone <your-repo>
-cd amortize-calculator
+cd amortize-platform
+
+# Navigate to calculator app (monorepo structure)
+cd apps/amortize-calculator
 
 # Install dependencies
 npm install

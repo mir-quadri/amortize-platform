@@ -54,12 +54,13 @@ export default function AmortizeCalculator() {
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* Principal Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="principal" className="block text-sm font-semibold text-gray-700 mb-2">
                 Loan Amount
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-3 text-gray-500">$</span>
                 <input
+                  id="principal"
                   type="number"
                   value={principal}
                   onChange={(e) => setPrincipal(e.target.value)}
@@ -72,11 +73,12 @@ export default function AmortizeCalculator() {
 
             {/* Rate Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="rate" className="block text-sm font-semibold text-gray-700 mb-2">
                 Annual Rate (%)
               </label>
               <div className="relative">
                 <input
+                  id="rate"
                   type="number"
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
@@ -92,10 +94,11 @@ export default function AmortizeCalculator() {
 
             {/* Term Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="months" className="block text-sm font-semibold text-gray-700 mb-2">
                 Loan Term (Months)
               </label>
               <input
+                id="months"
                 type="number"
                 value={months}
                 onChange={(e) => setMonths(e.target.value)}

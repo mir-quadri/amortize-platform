@@ -90,7 +90,7 @@ With connected Git:
 
 ## Testing the Deployment
 
-Once live, test at: `https://amortize-calculator.vercel.app` (or your custom domain)
+Once live, test at: `https://amortize-calculator.vercel.app/amortize` (or your custom domain + `/amortize`)
 
 1. Enter a loan amount (e.g., $300,000)
 2. Enter annual rate (e.g., 6%)

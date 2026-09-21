@@ -34,7 +34,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000/amortize](http://localhost:3000/amortize) in your browser.
+Open [http://localhost:3000/amortize](http://localhost:3000/amortize) in your browser (note: `/amortize` path is set via `basePath` config).
 
 ## Deployment to Vercel
 

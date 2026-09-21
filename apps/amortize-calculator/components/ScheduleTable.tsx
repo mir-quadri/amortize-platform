@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AmortizationScheduleEntry } from '@/lib/calculator';
 
 interface ScheduleTableProps {
@@ -5,16 +6,27 @@ interface ScheduleTableProps {
 }
 
 export default function ScheduleTable({ schedule }: ScheduleTableProps) {
-  const displaySchedule = schedule.slice(0, 12);
+  const [showAll, setShowAll] = useState(false);
+  const displaySchedule = showAll ? schedule : schedule.slice(0, 12);
   const hasMore = schedule.length > 12;
 
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      <div className="px-8 py-6 bg-gray-900 text-white">
-        <h2 className="text-2xl font-bold">Amortization Schedule</h2>
-        <p className="text-gray-400 text-sm mt-1">
-          First 12 months {hasMore && `(showing ${displaySchedule.length} of ${schedule.length} total payments)`}
-        </p>
+      <div className="px-8 py-6 bg-gray-900 text-white flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold">Amortization Schedule</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            {showAll ? 'All payments' : 'First 12 months'} {hasMore && `(showing ${displaySchedule.length} of ${schedule.length} total)`}
+          </p>
+        </div>
+        {hasMore && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+          >
+            {showAll ? 'Show First 12' : 'Show All'}
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -55,11 +67,6 @@ export default function ScheduleTable({ schedule }: ScheduleTableProps) {
         </table>
       </div>
 
-      {hasMore && (
-        <div className="px-8 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-          ℹ️ Schedule continues for {schedule.length - displaySchedule.length} more months. Download full schedule to see all payments.
-        </div>
-      )}
     </div>
   );
 }
